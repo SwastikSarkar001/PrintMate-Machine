@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Print Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center mb-6">🖨️ Upload File to Print</h1>
+    
+    <form id="printForm" class="space-y-4">
+      <input type="file" id="fileInput" name="file" class="cursor-pointer block w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2" required>
+      
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">
+        Submit to Print
+      </button>
+      
+      <div id="statusMessage" class="text-center text-sm mt-4"></div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('printForm');
+    const statusMsg = document.getElementById('statusMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusMsg.textContent = "Uploading...";
+
+      const fileInput = document.getElementById('fileInput');
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/print', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': 'your-strong-secret-key'
+          },
+          body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          statusMsg.textContent = data.message;
+          statusMsg.className = "text-green-600 text-center text-sm mt-4";
+        } else {
+          statusMsg.textContent = data.message;
+          statusMsg.className = "text-red-600 text-center text-sm mt-4";
+        }
+      } catch (error) {
+        statusMsg.textContent = "Network or server error.";
+        statusMsg.className = "text-red-600 text-center text-sm mt-4";
+      }
+    });
+  </script>
+</body>
+</html>
