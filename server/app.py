@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify
 from flask_cors import CORS
 from src.print_service import router
 
@@ -15,4 +15,4 @@ def helloWorld():
     })
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5050)
+    app.run(host="0.0.0.0", port=5050, debug=True)

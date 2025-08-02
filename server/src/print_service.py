@@ -1,16 +1,19 @@
-from flask import Blueprint, request, jsonify
-import subprocess
 import os
+import subprocess
 import requests
 from src.logger import logger
+from flask import Blueprint, request, jsonify
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = Blueprint('print_service', __name__)
 
 UPLOAD_FOLDER = '/tmp/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-PRINTER_NAME = 'HP_Smart_Tank_720'  # Replace with actual printer name
-API_KEY = 'your-strong-secret-key'  # Replace in production
+PRINTER_NAME = os.getenv('PRINTER_NAME')  # Replace with actual printer name
+API_KEY = os.getenv('API_KEY')  # Replace in production
 
 @router.route('/', methods=['POST'])
 def print_file():
@@ -29,7 +32,7 @@ def print_file():
         return jsonify({"status": "error", "message": "Empty file URL"}), 400
 
     try:
-        response = requests.get(file_url)
+        response = requests.get(file_url, timeout=30)
         response.raise_for_status()
 
         filename = file_url.split('/')[-1] or 'download.pdf'
@@ -40,18 +43,18 @@ def print_file():
         with open(filepath, 'wb') as f:
             f.write(response.content)
 
-        logger.info(f"Received print job from {request.remote_addr}: {filepath}")
+        logger.info("Received print job from %s: %s", request.remote_addr, filepath)
 
         try:
-            subprocess.run(['lp', '-d', PRINTER_NAME, filepath], check=True)
-            logger.info(f"Print job sent to printer: {PRINTER_NAME}")
+            subprocess.run(['lp', '-d', PRINTER_NAME, filepath], check=True) # type: ignore
+            logger.info("Print job sent to printer: %s", PRINTER_NAME)
             return jsonify({"status": "success", "message": "Print job submitted"}), 200
         except subprocess.CalledProcessError as e:
-            logger.error(f"Printing failed: {e}")
+            logger.error("Printing failed: %s", e)
             return jsonify({"status": "error", "message": f"Printing failed: {str(e)}"}), 500
         finally:
             if os.path.exists(filepath):
                 os.remove(filepath)  # Clean up
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to download file from {file_url}: {e}")
+        logger.error("Failed to download file from %s: %s", file_url, e)
         return jsonify({"status": "error", "message": f"Failed to download file: {str(e)}"}), 400
