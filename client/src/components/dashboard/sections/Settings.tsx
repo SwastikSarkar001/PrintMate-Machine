@@ -1,12 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { BellIcon, MoonIcon, PaletteIcon, SettingsIcon, ShieldIcon, SunIcon, UserIcon } from "lucide-react"
+import { BellIcon, MoonIcon, PaletteIcon, SettingsIcon, ShieldIcon, SunIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
@@ -29,11 +28,10 @@ export default function SettingsSection() {
       </div>
 
       <Tabs defaultValue="general" className="grow overflow-y-auto gap-6 p-6">
-        <TabsList className="grid w-full grid-cols-4 *:cursor-pointer">
+        <TabsList className="grid w-full grid-cols-3 *:cursor-pointer">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6 overflow-y-auto">
@@ -180,54 +178,6 @@ export default function SettingsSection() {
                   </div>
                   <Switch defaultChecked />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="account" className="space-y-6 overflow-y-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5" />
-                Account Information
-              </CardTitle>
-              <CardDescription>Manage your account details and preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" defaultValue="John" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" defaultValue="Doe" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="john.doe@example.com" />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Change Password</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input id="newPassword" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input id="confirmPassword" type="password" />
-                </div>
-                <Button>Update Password</Button>
               </div>
             </CardContent>
           </Card>

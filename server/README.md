@@ -45,21 +45,5 @@ Note: Make sure to replace the placeholder values in the `.env` file with your a
 Finally, run the Flask server in development mode:
 
 ```bash
-flask run --debug
+flask run
 ```
-
-or alternatively:
-
-**Windows:**
-```bash
-python app.py
-```
-
-**macOS/Linux:**
-```bash
-python3 app.py
-```
-
-The `--debug` flag enables auto-reloading, so the server will automatically restart whenever you make changes to your code files.
-
-Note: Make sure your main Flask application file is named `app.py` or set the `FLASK_APP` environment variable to point to your main application file.

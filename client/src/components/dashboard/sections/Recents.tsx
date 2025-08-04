@@ -1,8 +1,10 @@
 'use client';
 
 // Add TrashIcon to your imports
-import { CalendarIcon, FileIcon, FolderIcon, ImageIcon, VideoIcon, Loader2, EyeIcon, DownloadIcon, TrashIcon, PrinterIcon } from "lucide-react";
+import { CalendarIcon, FileIcon, FolderIcon, ImageIcon, VideoIcon, Loader2, EyeIcon, PrinterIcon } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react"; // Kept useRef for pagination
+import { MdErrorOutline } from "react-icons/md";
+import { EmbedPDF } from '@simplepdf/react-embed-pdf';
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +13,22 @@ import { Button } from "@/components/ui/button";
 import NoDocumentsFound from "@/ui/NoDocumentsFound";
 import { CloudinaryFile } from "@/types/types";
 import { useAuth } from "@/lib/auth-context";
+import Image from "next/image";
+import { toast } from "sonner";
+import { fetchAdvanced } from "@/lib/utils";
+
+import {
+  BsFiletypePng,
+  BsFiletypeJpg,
+  BsFiletypeSvg,
+  BsFiletypePdf,
+  BsFileEarmark,
+  BsFileEarmarkImage,
+  BsFiletypeBmp,
+  BsFiletypeGif,
+  BsFiletypeHeic,
+  BsFiletypeTiff,
+} from "react-icons/bs";
 
 // --- HELPER FUNCTION FOR ROBUST URLS ---
 const getCloudinaryUrl = (publicId: string | undefined, type: 'thumbnail' | 'preview') => {
@@ -55,6 +73,21 @@ const getFileIcon = (type: string): React.ComponentType<{ className?: string }> 
   }
 };
 
+export function renderFileType(type: string) {
+  if (type.startsWith("image/")) {
+    if (type === "image/bmp") return <BsFiletypeBmp />
+    else if (type === "image/gif") return <BsFiletypeGif />
+    else if (type === "image/heic") return <BsFiletypeHeic />
+    else if (type === "image/jpeg") return <BsFiletypeJpg />
+    else if (type === "image/png") return <BsFiletypePng />
+    else if (type === "image/svg+xml") return <BsFiletypeSvg />
+    else if (type === "image/tiff") return <BsFiletypeTiff />
+    else return <BsFileEarmarkImage />
+  }
+  else if (type === "application/pdf") return <BsFiletypePdf />
+  else return <BsFileEarmark />
+}
+
 function groupFilesByMonth(files: RecentFile[]) {
   const now = new Date();
   const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -86,8 +119,6 @@ export default function RecentsSection() {
   const [nextCursor, setNextCursor] = useState<string | null>(null); // For infinite scroll
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<RecentFile | null>(null);
-  // State to track the file currently being deleted
-  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const observerRef = useRef<HTMLDivElement>(null); // For infinite scroll
 
   // --- Re-integrated fetchFiles function with pagination ---
@@ -137,6 +168,102 @@ export default function RecentsSection() {
     return new Date(b + " 1").getTime() - new Date(a + " 1").getTime();
   });
 
+  return (
+    <div className="dashboard-section">
+      <div className="dashboard-section-header">
+        <CalendarIcon className="size-5" />
+        <h1 className="dashboard-section-header-h1">Recent Documents</h1>
+        <Badge variant={error ? "destructive" : "outline"} className="ml-auto">
+          {
+            loading ? "Loading..." :
+            error ? "Error" : `${files.length} document${files.length !== 1 ? "s" : ""}`
+          }
+        </Badge>
+      </div>
+      {
+        loading ? (
+          <div className="flex items-center justify-center h-full p-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading...</span>
+          </div>
+        ) : error ? (
+          <div className="flex items-center gap-2 justify-center flex-col h-full p-8 text-muted-foreground">
+            <MdErrorOutline className="size-16" />
+            <div className="max-w-1/2 text-center">Error: {error}</div>
+          </div>
+        ) : sortedGroupKeys.length === 0 && !loading ? <NoDocumentsFound /> : (
+          <div className="grow overflow-y-auto p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              {sortedGroupKeys.map((groupName) => (
+                <div key={groupName} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-medium">{groupName}</h2>
+                    <Badge variant="secondary" className="text-xs">{groupedFiles[groupName].length} {groupedFiles[groupName].length === 1 ? "item" : "items"}</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    { groupedFiles[groupName].map(file => <RecentFileCard key={file.id} file={file} setSelectedFile={setSelectedFile} />) }
+                  </div>
+                  {groupName !== sortedGroupKeys[sortedGroupKeys.length - 1] && <Separator />}
+                </div>
+              ))}
+              {loadingMore && <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /><span className="ml-2">Loading more...</span></div>}
+              <div ref={observerRef} className="h-4" />
+              {!hasMore && files.length > 0 && <div className="text-center text-sm text-muted-foreground p-4">No more files to load</div>}
+            </div>
+          </div>
+        )
+      }
+      { error || loading || selectedFile && <PreviewSelectedFile file={selectedFile} setSelectedFile={setSelectedFile} /> }
+    </div>
+  );
+}
+
+type UtilityProps = {
+  file: RecentFile;
+  setSelectedFile: React.Dispatch<React.SetStateAction<RecentFile | null>>;
+}
+
+function PreviewSelectedFile({ file, setSelectedFile }: UtilityProps) {
+  const closePreview = () => setSelectedFile(null);
+  const isPDF = (file: RecentFile) => file.type === 'document';
+  const isImage = (file: RecentFile) => file.type === 'image';
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={closePreview}>
+      <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="font-medium truncate pr-4">{file.name}</h3>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button size="sm" variant="ghost" onClick={closePreview} className="cursor-pointer">Close</Button>
+          </div>
+        </div>
+        <div className="p-4 overflow-auto relative">
+          {isImage(file) ? (
+            <Image fill src={getCloudinaryUrl(file.publicId, 'preview')} alt={file.name} className="w-full h-auto max-h-full object-contain" />
+          ) : isPDF(file) ? (
+            // <iframe
+            //   src={getCloudinaryUrl(file.publicId, 'preview')}
+            //   className="w-full h-[calc(90vh-100px)] border-0"
+            //   title={file.name}
+            // />
+            <EmbedPDF
+              companyIdentifier="react-viewer"
+              mode="inline"
+              className="w-full h-[calc(90vh-100px)]"
+              documentURL={getCloudinaryUrl(file.publicId, 'preview')}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground"><FileIcon className="h-16 w-16 mb-4" /><span>Preview not available for this file type.</span></div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecentFileCard({ file, setSelectedFile }: UtilityProps) {
+  const [disablePrintOption, setDisablePrintOption] = useState(false);
+
   const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const isToday = (dateString: string) => new Date(dateString).toDateString() === new Date().toDateString();
@@ -144,116 +271,63 @@ export default function RecentsSection() {
   const handleFileClick = (file: RecentFile) => setSelectedFile(file);
   const handlePrint = async (file: RecentFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fetch(`/api/print`, {
+    setDisablePrintOption(true)
+    const promise = fetchAdvanced(`/api/pipeline/print`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY ?? '<API_KEY>',
+      },
       body: JSON.stringify({ fileUrl: file.url }),
-    });
+    })
+    toast.promise(promise, {
+      loading: 'Sending print request...',
+      success: (data) => {
+        setDisablePrintOption(false);
+        return data.message
+      },
+      error: (error: Error) => {
+        setDisablePrintOption(false);
+        return error.message ? error.message.includes("is not valid JSON") ? "Connection error" : error.message : 'Failed to send print request';
+        // return error.message ?? 'Failed to send print request';
+      }
+    })
   };
   const handlePreview = (file: RecentFile, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedFile(file);
   };
-  const closePreview = () => setSelectedFile(null);
 
-  // --- SIMPLIFIED AND RELIABLE CHECKS ---
   const isPDF = (file: RecentFile) => file.type === 'document';
   const isImage = (file: RecentFile) => file.type === 'image';
 
-  if (loading) { return <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading...</span></div>; }
-  if (error) { return <div className="p-8 text-red-500">Error: {error}</div>; }
-
   return (
-    <div className="dashboard-section">
-      <div className="dashboard-section-header">
-        <CalendarIcon className="size-5" />
-        <h1 className="dashboard-section-header-h1">Recent Documents</h1>
-        <Badge variant="outline" className="ml-auto">{files.length} documents</Badge>
-      </div>
-
-      {sortedGroupKeys.length === 0 && !loading ? <NoDocumentsFound /> : (
-        <div className="grow overflow-y-auto p-4 sm:p-6">
-          <div className="space-y-4 sm:space-y-6">
-            {sortedGroupKeys.map((groupName) => (
-              <div key={groupName} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-medium">{groupName}</h2>
-                  <Badge variant="secondary" className="text-xs">{groupedFiles[groupName].length} {groupedFiles[groupName].length === 1 ? "item" : "items"}</Badge>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {groupedFiles[groupName].map(file => (
-                    <Card key={file.id} className="hover:bg-muted/50 transition-colors cursor-pointer group relative">
-                      {/* Deletion Overlay */}
-                      {deletingFileId === file.id && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg z-10">
-                          <Loader2 className="h-8 w-8 animate-spin text-white" />
-                        </div>
-                      )}
-                      <CardContent className="p-4 flex flex-col h-full" onClick={() => handleFileClick(file)}>
-                        <div className="aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                          {isImage(file) ? (
-                            <img src={getCloudinaryUrl(file.publicId, 'thumbnail')} alt={file.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : isPDF(file) ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                              <FileIcon className="h-12 w-12 mb-2" />
-                              <span className="text-xs text-center">PDF Document</span>
-                            </div>
-                          ) : (
-                            <file.icon className="h-12 w-12 text-muted-foreground" />
-                          )}
-                        </div>
-                        {/* --- RESTORED FILE INFO SECTION --- */}
-                        <div className="space-y-2 mt-auto">
-                          <p className="font-medium text-sm truncate" title={file.name}>{file.name}</p>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{file.size}</span>
-                            <span>{isToday(file.modified) ? `Today at ${formatTime(file.modified)}` : formatDate(file.modified)}</span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button size="sm" variant="outline" onClick={(e) => handlePreview(file, e)} className="h-6 cursor-pointer px-2 text-xs"><EyeIcon className="h-3 w-3 mr-1" />Preview</Button>
-                            <Button size="sm" variant="outline" onClick={(e) => handlePrint(file, e)} className="h-6 cursor-pointer px-2 text-xs"><PrinterIcon className="h-3 w-3 mr-1" />Print</Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                {groupName !== sortedGroupKeys[sortedGroupKeys.length - 1] && <Separator />}
-              </div>
-            ))}
-            {loadingMore && <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /><span className="ml-2">Loading more...</span></div>}
-            <div ref={observerRef} className="h-4" />
-            {!hasMore && files.length > 0 && <div className="text-center text-sm text-muted-foreground p-4">No more files to load</div>}
-          </div>
-        </div>
-      )}
-
-      {/* --- CORRECTED FILE PREVIEW MODAL --- */}
-      {selectedFile && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={closePreview}>
-          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-medium truncate pr-4">{selectedFile.name}</h3>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button size="sm" variant="ghost" onClick={closePreview} className="cursor-pointer">Close</Button>
-              </div>
-            </div>
-            <div className="p-4 overflow-auto">
-              {isImage(selectedFile) ? (
-                <img src={getCloudinaryUrl(selectedFile.publicId, 'preview')} alt={selectedFile.name} className="w-full h-auto max-h-full object-contain" />
-              ) : isPDF(selectedFile) ? (
-                <iframe
-                  src={getCloudinaryUrl(selectedFile.publicId, 'preview')}
-                  className="w-full h-[calc(90vh-100px)] border-0"
-                  title={selectedFile.name}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground"><FileIcon className="h-16 w-16 mb-4" /><span>Preview not available for this file type.</span></div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    <Card key={file.id} className="hover:bg-muted/50 transition-colors cursor-pointer relative">
+       <CardContent className="flex flex-col gap-4 h-full" onClick={() => handleFileClick(file)}>
+         <div className="aspect-square relative bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+           {isImage(file) ? (
+             <Image fill src={getCloudinaryUrl(file.publicId, 'thumbnail')} alt={file.name} className="size-full object-cover" loading="lazy" />
+           ) : isPDF(file) ? (
+             <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+               <FileIcon className="h-12 w-12 mb-2" />
+               <span className="text-xs text-center">PDF Document</span>
+             </div>
+           ) : (
+             <file.icon className="h-12 w-12 text-muted-foreground" />
+           )}
+         </div>
+         <div className="space-y-1 mt-auto">
+           <p className="font-medium text-sm truncate" title={file.name}>{file.name}</p>
+           <div className="flex items-center justify-between text-xs text-muted-foreground">
+             <span>{file.size}</span>
+             <span>{isToday(file.modified) ? `Today at ${formatTime(file.modified)}` : formatDate(file.modified)}</span>
+           </div>
+         </div>
+         <div className="flex flex-wrap items-center gap-2 w-full *:grow">
+           <Button size="sm" variant="outline" onClick={(e) => handlePreview(file, e)} className="h-6 cursor-pointer px-2 text-xs"><EyeIcon className="h-3 w-3 mr-1" />Preview</Button>
+           <Button disabled={disablePrintOption} size="sm" variant="outline" onClick={(e) => handlePrint(file, e)} className="h-6 cursor-pointer px-2 text-xs"><PrinterIcon className="h-3 w-3 mr-1" />Print</Button>
+         </div>
+       </CardContent>
+     </Card>
+  )
 }

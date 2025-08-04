@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
   const userId = request.cookies.get('userId')?.value;
 
   // DEBUG: Log path and cookie state
-  console.log('pathname:', pathname, 'userId:', userId);
+  // console.log('pathname:', pathname, 'userId:', userId);
 
   const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
   const isPublic = publicRoutes.some(route => pathname === route); // use strict equality for public root

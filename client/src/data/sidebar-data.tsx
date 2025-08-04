@@ -1,24 +1,16 @@
 import HelpSection from "@/components/dashboard/sections/Help";
-import MyCartSection from "@/components/dashboard/sections/MyCart";
 import MyFilesSection from "@/components/dashboard/sections/MyFiles";
-import NotificationsSection from "@/components/dashboard/sections/Notifications";
 import RecentsSection from "@/components/dashboard/sections/Recents";
 import SearchSection from "@/components/dashboard/sections/Search";
 import SettingsSection from "@/components/dashboard/sections/Settings";
-import StorageSection from "@/components/dashboard/sections/Storage";
-import TrashSection from "@/components/dashboard/sections/Trash";
 
 import {
   ClockIcon,
   FolderIcon,
-  TrashIcon,
   SettingsIcon,
-  HardDriveIcon,
   HelpCircleIcon,
   SearchIcon,
   LucideIcon,
-  ShoppingCartIcon,
-  BellIcon
 } from "lucide-react";
 
 export type NavData = {
@@ -41,7 +33,7 @@ export type NavData = {
 const data: NavData = {
   navMain: [
     {
-      title: "My Documents",
+      title: "Recent Documents",
       url: "#recents",
       component: RecentsSection,
       icon: ClockIcon,
@@ -51,25 +43,7 @@ const data: NavData = {
       url: "#files",
       component: MyFilesSection,
       icon: FolderIcon,
-    },
-    {
-      title: "Trash",
-      url: "#trash",
-      component: TrashSection,
-      icon: TrashIcon,
-    },
-    {
-      title: "Storage",
-      url: "#storage",
-      component: StorageSection,
-      icon: HardDriveIcon,
-    },
-    {
-      title: "My Cart",
-      url: "#cart",
-      component: MyCartSection,
-      icon: ShoppingCartIcon,
-    },
+    }
   ],
   navSecondary: [
     {
@@ -77,12 +51,6 @@ const data: NavData = {
       url: "#settings",
       component: SettingsSection,
       icon: SettingsIcon,
-    },
-    {
-      title: "Notifications",
-      url: "#notifications",
-      component: NotificationsSection,
-      icon: BellIcon,
     },
     {
       title: "Get Help",
