@@ -349,7 +349,7 @@ function RecentFileCard({ file, setSelectedFile }: UtilityProps) {
   return (
     <Card key={file.id} className="hover:bg-muted/50 transition-colors cursor-pointer relative">
        <CardContent className="flex flex-col gap-4 h-full" onClick={() => handleFileClick(file)}>
-         <div className="aspect-square relative bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+         <div className="aspect-square overflow-hidden border border-muted-foreground/50 relative bg-muted rounded-lg flex items-center justify-center">
            <Thumbnail file={file} />
          </div>
          <div className="space-y-1 mt-auto">
