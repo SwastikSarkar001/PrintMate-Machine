@@ -1,10 +1,9 @@
 'use client';
 
 // Add TrashIcon to your imports
-import { CalendarIcon, FileIcon, FolderIcon, ImageIcon, VideoIcon, Loader2, EyeIcon, PrinterIcon } from "lucide-react";
+import { CalendarIcon, FileIcon, FolderIcon, ImageIcon, VideoIcon, Loader2, EyeIcon, PrinterIcon, ZoomInIcon, ZoomOutIcon } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react"; // Kept useRef for pagination
 import { MdErrorOutline } from "react-icons/md";
-import { EmbedPDF } from '@simplepdf/react-embed-pdf';
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,25 +29,20 @@ import {
   BsFiletypeTiff,
 } from "react-icons/bs";
 
-// --- HELPER FUNCTION FOR ROBUST URLS ---
-const getCloudinaryUrl = (publicId: string | undefined, type: 'thumbnail' | 'preview') => {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  if (!cloudName || !publicId) {
-    // Return a placeholder or empty string if config is missing to prevent crashes
-    return "";
-  }
+import { getCloudinaryUrl } from '@/lib/utils';
+import Thumbnail from "@/ui/Thumbnail";
 
-  // Use a small, cropped thumbnail for the grid view to save bandwidth
-  if (type === 'thumbnail') {
-    return `https://res.cloudinary.com/${cloudName}/image/upload/c_fill,h_300,w_300/${publicId}`;
-  }
+import { pdfjs, Document, Page } from "react-pdf";
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
-  // Use the full image delivery for the large preview modal
-  return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
-};
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 // RecentFile type now includes the icon property for rendering
-type RecentFile = CloudinaryFile & {
+export type RecentFile = CloudinaryFile & {
   icon: React.ComponentType<{ className?: string }>;
 };
 
@@ -224,34 +218,89 @@ type UtilityProps = {
 }
 
 function PreviewSelectedFile({ file, setSelectedFile }: UtilityProps) {
+  const [numPages, setNumPages] = useState<number>();
+  const [scale, setScale] = useState<number>(1.0);
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+  }
+
   const closePreview = () => setSelectedFile(null);
   const isPDF = (file: RecentFile) => file.type === 'document';
   const isImage = (file: RecentFile) => file.type === 'image';
 
+  const zoomIn = () => setScale((s) => Math.min(s + 0.25, 3));
+  const zoomOut = () => setScale((s) => Math.max(s - 0.25, 0.5));
+  const resetZoom = () => setScale(1);
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={closePreview}>
-      <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+      onClick={closePreview}
+    >
+      <div
+        className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-medium truncate pr-4">{file.name}</h3>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Button size="sm" variant="ghost" onClick={closePreview} className="cursor-pointer">Close</Button>
           </div>
         </div>
+        {
+          isPDF(file) && (
+            <div className="absolute left-1/2 -translate-x-1/2 z-20 bottom-8 flex items-center justify-between p-2 rounded-full bg-gray-50 dark:bg-gray-800">
+              {/* Page Nav */}
+              {/* <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={prevPage} disabled={page <= 1}>
+                  Prev
+                </Button>
+                <span>
+                  Page <strong>{page}</strong> of <strong>{numPages}</strong>
+                </span>
+                <Button size="sm" variant="outline" onClick={nextPage} disabled={page >= numPages}>
+                  Next
+                </Button>
+              </div> */}
+
+              {/* Zoom */}
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="cursor-pointer rounded-full p-2!" onClick={zoomOut} disabled={scale <= 0.5}>
+                  <ZoomOutIcon className="h-4 w-4" />
+                </Button>
+                <span className="mx-2">{Math.round(scale * 100)}%</span>
+                <Button size="sm" variant="outline" className="cursor-pointer rounded-full p-2!" onClick={zoomIn} disabled={scale >= 3}>
+                  <ZoomInIcon className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline" className="cursor-pointer rounded-full " onClick={resetZoom}>
+                  Reset
+                </Button>
+              </div>
+            </div>
+          )
+        }
         <div className="p-4 overflow-auto relative">
           {isImage(file) ? (
             <Image fill src={getCloudinaryUrl(file.publicId, 'preview')} alt={file.name} className="w-full h-auto max-h-full object-contain" />
           ) : isPDF(file) ? (
-            // <iframe
-            //   src={getCloudinaryUrl(file.publicId, 'preview')}
-            //   className="w-full h-[calc(90vh-100px)] border-0"
-            //   title={file.name}
-            // />
-            <EmbedPDF
-              companyIdentifier="react-viewer"
-              mode="inline"
-              className="w-full h-[calc(90vh-100px)]"
-              documentURL={getCloudinaryUrl(file.publicId, 'preview')}
-            />
+            <Document
+              file={getCloudinaryUrl(file.publicId, "preview")}
+              onLoadSuccess={onDocumentLoadSuccess}
+              className="w-full flex gap-1 flex-col items-center justify-center"
+            >
+              {
+                Array.from (
+                  new Array(numPages),
+                  (_el, index) => (
+                    <Page
+                      key={index}
+                      scale={scale}
+                      pageNumber={index + 1}
+                      className="shrink-0"
+                    />
+                  )
+                )
+              }
+            </Document>
           ) : (
             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground"><FileIcon className="h-16 w-16 mb-4" /><span>Preview not available for this file type.</span></div>
           )}
@@ -296,25 +345,12 @@ function RecentFileCard({ file, setSelectedFile }: UtilityProps) {
   const handlePreview = (file: RecentFile, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedFile(file);
-  };
-
-  const isPDF = (file: RecentFile) => file.type === 'document';
-  const isImage = (file: RecentFile) => file.type === 'image';
-
+  }
   return (
     <Card key={file.id} className="hover:bg-muted/50 transition-colors cursor-pointer relative">
        <CardContent className="flex flex-col gap-4 h-full" onClick={() => handleFileClick(file)}>
          <div className="aspect-square relative bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-           {isImage(file) ? (
-             <Image fill src={getCloudinaryUrl(file.publicId, 'thumbnail')} alt={file.name} className="size-full object-cover" loading="lazy" />
-           ) : isPDF(file) ? (
-             <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-               <FileIcon className="h-12 w-12 mb-2" />
-               <span className="text-xs text-center">PDF Document</span>
-             </div>
-           ) : (
-             <file.icon className="h-12 w-12 text-muted-foreground" />
-           )}
+           <Thumbnail file={file} />
          </div>
          <div className="space-y-1 mt-auto">
            <p className="font-medium text-sm truncate" title={file.name}>{file.name}</p>

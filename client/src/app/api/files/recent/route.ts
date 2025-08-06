@@ -16,22 +16,22 @@ export async function GET(request: NextRequest) {
     // Build query parameters
     const queryParams: {
       where: {
-      userId: string;
+        userId: string;
       };
       orderBy: {
-      uploadedAt: 'desc';
+        uploadedAt: 'desc';
       };
       take: number;
       cursor?: {
-      id: string;
+        id: string;
       };
       skip?: number;
     } = {
       where: {
-      userId: userId,
+        userId: userId,
       },
       orderBy: {
-      uploadedAt: 'desc',
+        uploadedAt: 'desc',
       },
       take: 10, // Only take the 10 most recent files
     };
