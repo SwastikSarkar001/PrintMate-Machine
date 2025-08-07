@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ['/dashboard'];
+  const protectedRoutes = ['/print'];
   const publicRoutes = ['/'];
 
   const userId = request.cookies.get('userId')?.value;
@@ -19,9 +19,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Prevent redirect loop by ensuring we're not already on /dashboard
-  if (isPublic && userId && pathname !== '/dashboard') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Prevent redirect loop by ensuring we're not already on /print
+  if (isPublic && userId && pathname !== '/print') {
+    return NextResponse.redirect(new URL('/print', request.url));
   }
 
   return NextResponse.next();

@@ -59,7 +59,7 @@ export default function LoginForm({ className, ...props }: LoginFormProps) {
       if (result.success) {
         toast.success('Login successful!');
         login(result.data.user)
-        router.push('/dashboard')
+        router.push('/print')
       } else {
         toast.error(result.message || 'Login failed');
         

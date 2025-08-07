@@ -1,8 +1,18 @@
 'use client';
 
-// Add TrashIcon to your imports
-import { CalendarIcon, FileIcon, FolderIcon, ImageIcon, VideoIcon, Loader2, EyeIcon, PrinterIcon, ZoomInIcon, ZoomOutIcon } from "lucide-react";
-import { useState, useEffect, useCallback, useRef } from "react"; // Kept useRef for pagination
+import {
+  FileIcon,
+  FolderIcon,
+  ImageIcon,
+  VideoIcon,
+  Loader2,
+  EyeIcon,
+  PrinterIcon,
+  ZoomInIcon,
+  ZoomOutIcon
+} from "lucide-react";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import { MdClose, MdErrorOutline } from "react-icons/md";
 
 import { Badge } from "@/components/ui/badge";
@@ -165,8 +175,11 @@ export default function RecentsSection() {
   return (
     <div className="dashboard-section">
       <div className="dashboard-section-header">
-        <CalendarIcon className="size-5" />
-        <h1 className="dashboard-section-header-h1">Recent Documents</h1>
+        <PrinterIcon className="size-10" />
+        <div className="space-y-0.5">
+          <h1 className="dashboard-section-header-h1">Select a Document to Print</h1>
+          <p className="dashboard-section-header-p text-muted-foreground text-sm">Choose a file from your recent uploads. Click &quot;Print&quot; to continue with printing options.</p>
+        </div>
         <Badge variant={error ? "destructive" : "outline"} className="ml-auto">
           {
             loading ? "Loading..." :
@@ -383,8 +396,8 @@ function RecentFileCard({ file, setSelectedFile }: UtilityProps) {
            </div>
          </div>
          <div className="flex flex-wrap items-center gap-2 w-full *:grow">
-           <Button size="sm" variant="outline" onClick={(e) => handlePreview(file, e)} className="h-6 cursor-pointer px-2 text-xs"><EyeIcon className="h-3 w-3 mr-1" />Preview</Button>
-           <Button disabled={disablePrintOption} size="sm" variant="outline" onClick={(e) => handlePrint(file, e)} className="h-6 cursor-pointer px-2 text-xs"><PrinterIcon className="h-3 w-3 mr-1" />Print</Button>
+           <Button size="lg" disabled={disablePrintOption} variant="default" onClick={(e) => handlePrint(file, e)} className="h-6 cursor-pointer px-2 text-xs"><PrinterIcon className="h-3 w-3 mr-1" />Print</Button>
+           <Button size="lg" variant="outline" onClick={(e) => handlePreview(file, e)} className="h-6 cursor-pointer px-2 text-xs"><EyeIcon className="h-3 w-3 mr-1" />Preview</Button>
          </div>
        </CardContent>
      </Card>

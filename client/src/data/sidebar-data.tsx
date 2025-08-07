@@ -1,8 +1,8 @@
-import HelpSection from "@/components/dashboard/sections/Help";
-import MyFilesSection from "@/components/dashboard/sections/MyFiles";
-import RecentsSection from "@/components/dashboard/sections/Recents";
-import SearchSection from "@/components/dashboard/sections/Search";
-import SettingsSection from "@/components/dashboard/sections/Settings";
+import HelpSection from "@/components/print/sections/Help";
+import MyFilesSection from "@/components/print/sections/MyFiles";
+import RecentsSection from "@/components/print/sections/Recents";
+import SearchSection from "@/components/print/sections/Search";
+import SettingsSection from "@/components/print/sections/Settings";
 
 import {
   ClockIcon,

@@ -132,7 +132,7 @@
 }
 
 @utility dashboard-section-header {
-  @apply p-4 sm:p-6 bg-background flex items-center gap-2 md:gap-4 border-b;
+  @apply p-4 sm:p-6 bg-background flex items-center gap-4 md:gap-6 border-b;
 }
 
 @utility dashboard-section-header-h1 {

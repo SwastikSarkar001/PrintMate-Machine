@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react';
-import { RecentFile } from '@/components/dashboard/sections/Recents'
+import { RecentFile } from '@/components/print/sections/Recents'
 import { getCloudinaryUrl } from '@/lib/utils'
 import { Loader2Icon } from 'lucide-react'
 import Image from 'next/image'
